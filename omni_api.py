@@ -6,20 +6,18 @@ import google.generativeai as genai
 
 app = Flask(__name__)
 
-# Enable CORS for all routes
 CORS(app)
-
-context = {}
-
-
-
 
 @app.route('/api/main', methods=['POST'])
 def select_api():
     data = request.get_json()
     query = data.get("query")
-    
-    genai.configure(api_key=os.getenv('API_KEY'))
+    try:
+        context = data.get("context")
+    except Exception:
+        context = []
+
+    genai.configure(api_key="AIzaSyBd2_eWwC8qeaDTajYIIEKnM-ZBkF_gmHI")
     model = genai.GenerativeModel(model_name="gemini-1.5-pro")
 
     if not query:
@@ -41,6 +39,8 @@ def select_api():
                         1. Analyze the **current user query**.
                         2. Consider the **context of previous interactions** (if available) to understand the user's intent.
                         3. Decide which API is most suitable for handling the query.
+                        4. You can also finish or modify the prompt based on last interaction in the context.
+                        5. Make sure that you're calling the right API based on the last bot response, such as if it is in telugu, try to continue that.
 
                         ### Context:
                         {context}
@@ -52,38 +52,46 @@ def select_api():
                   '''
         response = model.generate_content([prompt])
         generated_text = response.text.strip()
-        # print("GEN TEXT : ", generated_text) 
-        # api_dict = {
-        #     "Image_Generation_API": "Vinuthna",
-        #     "Information_Retrieval_API": "Chandrima",
-        #     "Telugu_Response_API": "Bhargav"
-        # }
         msg = []
         if(generated_text == "Image_Generation_API"):
-            msg.append({"replyImage":"api_call_to_vinuthna","reply":None})
+      
+            img_api_url = "https://sticky-mariann-vinuthna-6da511fd.koyeb.app/generate-image"
+            payload = {"description":query}
+            headers = {"Content-Type": "application/json"}
+            img_response = requests.post(img_api_url,json=payload,headers=headers)
+            api_msg_vin = img_response.json()
+            msg.append({"replyImage":api_msg_vin.get("image_url","🤖"),"reply":None})
+ 
         elif(generated_text == "Information_Retrieval_API"):
-            msg.append({"replyImage":None,"reply":"api_call_to_chandrima"})
+            
+            try:
+                info_api_url = "https://magnetic-celka-chandrima-ac1425a3.koyeb.app/summarize"
+                payload = {"query":query}
+                headers = {"Content-Type": "application/json"}
+                info_response = requests.post(info_api_url,json=payload,headers=headers)    
+                api_msg_chan = info_response.json()
+                msg.append({"replyImage":None, "reply":api_msg_chan.get("summary","NCHANDRIMAo info found")})
+            
+            except requests.exceptions.RequestException as e:
+                msg.append({"replyImage":None, "reply":"Error retrieving info"})
+            
+            return jsonify(msg[0])
+            
         else:
+
             try:
                 telugu_api_url = "https://defeated-cathi-bhargavramkongara-d69e1f60.koyeb.app/get_telugu_response"
                 payload = {"message":query}
                 headers = {"Content-Type": "application/json"}
-                # print("PAYLOAD : ",payload)
                 telugu_response = requests.post(telugu_api_url,json=payload,headers=headers)
-                # print("TELUGU RESPONSE : ",telugu_response)
-                # telugu_response.raise_for_status()
-                # print("BELOW RAISE FOR STATUS")
                 api_msg_bhargav = telugu_response.json()
-                # print("API_MSG_BHARGAV : ",api_msg_bhargav)
-                
                 msg.append({"replyImage":None, "reply":api_msg_bhargav.get("response","No response found")})
-            except requests.exceptions.RequestException as e:
-                # print("EXCEPTION IS : ",e)
+            
+            except requests.exceptions.RequestException as e:    
                 msg.append({"replyImage":None, "reply":"Error retrieving telugu response"})
-        # print("-"*54)
-        # print("MSG[0] : ",msg[0])   
-        # print("-"*54) 
+        
         return jsonify(msg[0])       
+    
     except Exception as e:
         return {"replyImage":None,"reply":None}, 500
 
