@@ -83,7 +83,7 @@ def select_api():
         # print("-"*54)
         # print("MSG[0] : ",msg[0])   
         # print("-"*54) 
-        return msg[0]       
+        return jsonify(msg[0])       
     except Exception as e:
         return {"replyImage":None,"reply":None}, 500
 
