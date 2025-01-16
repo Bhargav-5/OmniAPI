@@ -48,7 +48,7 @@ def select_api():
                         ### Current User Query:
                         {query}
 
-                        Respond with the **exact name of the API** to use (i.e., "Image_Generation_API", "Information_Retrieval_API", or "Telugu_Response_API") along with a **brief explanation** of why this API is the best choice for the given query.
+                        Respond with the **exact name of the API** to use (i.e., "Image_Generation_API", "Information_Retrieval_API", or "Telugu_Response_API") do not give any further explanation for the given query.
                   '''
         response = model.generate_content([prompt])
         generated_text = response.text.strip()
